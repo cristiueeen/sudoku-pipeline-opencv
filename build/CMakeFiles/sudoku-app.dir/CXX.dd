@@ -1,0 +1,7 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/sudoku-app.dir/src/DigitRecognizer.cpp.o: dyndep
+
+build CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o: dyndep
+
+build CMakeFiles/sudoku-app.dir/src/main.cpp.o: dyndep
+

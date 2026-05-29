@@ -1,0 +1,21 @@
+# ninja log v7
+5	344	1780088695183502223	CMakeFiles/sudoku-app.dir/src/DigitRecognizer.cpp.o.ddi	42e0ae986b89eefe
+4	205	1780085664106577236	CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o.ddi	afe633e701766582
+5	321	1780088695184761171	CMakeFiles/sudoku-app.dir/src/main.cpp.o.ddi	174f4bbe80e5cee
+5	11	1780090080450544574	CMakeFiles/sudoku-app.dir/CXX.dd	b4fb3ececb5315ab
+5	11	1780090080450544574	CMakeFiles/sudoku-app.dir/CXXModules.json	b4fb3ececb5315ab
+5	11	1780090080450544574	CMakeFiles/sudoku-app.dir/src/DigitRecognizer.cpp.o.modmap	b4fb3ececb5315ab
+5	11	1780090080450544574	CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o.modmap	b4fb3ececb5315ab
+5	11	1780090080450544574	CMakeFiles/sudoku-app.dir/src/main.cpp.o.modmap	b4fb3ececb5315ab
+351	2741	1780088695530772462	CMakeFiles/sudoku-app.dir/src/main.cpp.o	2c34d7fd615c8028
+226	2869	1780085664328085356	CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o	b6bb19e5045778f7
+351	2842	1780088695529495006	CMakeFiles/sudoku-app.dir/src/DigitRecognizer.cpp.o	13ead87974034c8e
+2842	3758	1780088698020443049	sudoku-app	42814756273c6802
+6	318	1780090124325738579	CMakeFiles/sudoku-app.dir/src/DigitRecognizer.cpp.o.ddi	42e0ae986b89eefe
+318	324	1780090124637739330	CMakeFiles/sudoku-app.dir/CXX.dd	b4fb3ececb5315ab
+318	324	1780090124637739330	CMakeFiles/sudoku-app.dir/CXXModules.json	b4fb3ececb5315ab
+318	324	1780090124637739330	CMakeFiles/sudoku-app.dir/src/DigitRecognizer.cpp.o.modmap	b4fb3ececb5315ab
+318	324	1780090124637739330	CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o.modmap	b4fb3ececb5315ab
+318	324	1780090124637739330	CMakeFiles/sudoku-app.dir/src/main.cpp.o.modmap	b4fb3ececb5315ab
+324	2741	1780090124645237811	CMakeFiles/sudoku-app.dir/src/DigitRecognizer.cpp.o	13ead87974034c8e
+2741	3606	1780090127060745157	sudoku-app	42814756273c6802

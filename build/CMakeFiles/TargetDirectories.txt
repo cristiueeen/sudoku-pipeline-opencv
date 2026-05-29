@@ -1,0 +1,3 @@
+/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build/CMakeFiles/sudoku-app.dir
+/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build/CMakeFiles/edit_cache.dir
+/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build/CMakeFiles/rebuild_cache.dir
