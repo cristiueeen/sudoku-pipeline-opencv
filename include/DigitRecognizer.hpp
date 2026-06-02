@@ -1,48 +1,48 @@
 #pragma once
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include <map>
+#include <utility>
 
+// Feature vector for a single normalised digit image.
+//  - pixels : flattened S*S binary overlap map (0/1)
+//  - zoning : Z*Z grid of foreground densities (captures spatial layout,
+//             the key to telling 1/7 and 3/8 apart)
+//  - h_proj : per-row foreground density (S values)
+//  - v_proj : per-column foreground density (S values)
 struct DigitFeatures {
-    std::vector<float> h_proj;      // horizontal projection histogram
-    std::vector<float> v_proj;      // vertical projection histogram
-    std::vector<float> zoneDensity; // spatial zone density grid
-    cv::Mat normalizedImage;        // preprocessed 28x28 image for pixel matching
-};
-
-struct TemplateEntry {
-    int digit;
-    DigitFeatures features;
+    std::vector<float> pixels;
+    std::vector<float> zoning;
+    std::vector<float> h_proj;
+    std::vector<float> v_proj;
+    bool valid = false;
 };
 
 class DigitRecognizer {
 private:
-    static constexpr int NORM_SIZE = 28;
-    static constexpr int ZONE_GRID = 5;  // 5x5 = 25 zones
-    static constexpr float CONFIDENCE_THRESHOLD = 0.25f;
+    // Canonical sizes (validated offline against real warped cells).
+    static constexpr int S      = 28;  // normalised canvas side
+    static constexpr int MARGIN = 4;   // empty border kept around the digit
+    static constexpr int Z      = 7;   // zoning grid is Z x Z
+    static constexpr int K      = 5;   // neighbours for the k-NN vote
 
-    std::vector<TemplateEntry> templates; // multiple templates per digit
+    // Every labelled reference sample: the canonical hand-made templates plus
+    // any real digits harvested from solved grids (templates_knn/).
+    std::vector<std::pair<int, DigitFeatures>> references;
 
-    // Preprocessing
-    cv::Mat preprocessCell(const cv::Mat& cell);
-
-    // Feature extraction
-    std::vector<float> getHorizontalProjection(const cv::Mat& normalized);
-    std::vector<float> getVerticalProjection(const cv::Mat& normalized);
-    std::vector<float> getZoneDensities(const cv::Mat& normalized);
-
-    // Matching
-    float getPixelMatchScore(const cv::Mat& a, const cv::Mat& b);
-    float getProjectionDistance(const DigitFeatures& f1, const DigitFeatures& f2);
-    float getZoneDistance(const DigitFeatures& f1, const DigitFeatures& f2);
-    float getCombinedScore(const DigitFeatures& query, const TemplateEntry& tmpl);
-
-    // Template augmentation
-    DigitFeatures extractFeatures(const cv::Mat& preprocessed);
-    void addTemplateVariants(int digit, const cv::Mat& baseImage);
+    cv::Mat normalise(const cv::Mat& cell);
+    DigitFeatures extractFeatures(const cv::Mat& normalised);
+    float calculateDistance(const DigitFeatures& a, const DigitFeatures& b);
+    void addSample(int digit, const cv::Mat& image);
 
 public:
-    DigitRecognizer(); 
-    
-    int recognizeDigit(const cv::Mat& cell); 
+    // Builds the reference set from templates_knn/ (the harvested real digits).
+    // If a legacy templates/ folder is present it is also loaded as extra
+    // seeds, but it is not required.
+    DigitRecognizer();
+
+    // Returns the recognised digit (1-9), or 0 for an empty cell.
+    int recognizeDigit(const cv::Mat& cell);
+
+    // Number of reference samples loaded (for diagnostics).
+    std::size_t sampleCount() const { return references.size(); }
 };

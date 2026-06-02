@@ -7,6 +7,18 @@
 },
 {
   "directory": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build",
+  "command": "/usr/bin/g++ -I/home/cristiueeen/Documents/Facultate/IP/sudoku-project/include -isystem /usr/include/opencv4 -g -std=c++20 -fmodules-ts -fmodule-mapper=CMakeFiles/sudoku-app.dir/src/SudokuPipeline.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o CMakeFiles/sudoku-app.dir/src/SudokuPipeline.cpp.o -c /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/SudokuPipeline.cpp",
+  "file": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/SudokuPipeline.cpp",
+  "output": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build/CMakeFiles/sudoku-app.dir/src/SudokuPipeline.cpp.o"
+},
+{
+  "directory": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build",
+  "command": "/usr/bin/g++ -I/home/cristiueeen/Documents/Facultate/IP/sudoku-project/include -isystem /usr/include/opencv4 -g -std=c++20 -fmodules-ts -fmodule-mapper=CMakeFiles/sudoku-app.dir/src/SudokuSolver.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o CMakeFiles/sudoku-app.dir/src/SudokuSolver.cpp.o -c /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/SudokuSolver.cpp",
+  "file": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/SudokuSolver.cpp",
+  "output": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build/CMakeFiles/sudoku-app.dir/src/SudokuSolver.cpp.o"
+},
+{
+  "directory": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build",
   "command": "/usr/bin/g++ -I/home/cristiueeen/Documents/Facultate/IP/sudoku-project/include -isystem /usr/include/opencv4 -g -std=c++20 -fmodules-ts -fmodule-mapper=CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o.modmap -MD -fdeps-format=p1689r5 -x c++ -o CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o -c /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/algorithms.cpp",
   "file": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/algorithms.cpp",
   "output": "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/build/CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o"

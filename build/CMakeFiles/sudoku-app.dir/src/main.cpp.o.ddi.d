@@ -362,5 +362,10 @@ CMakeFiles/sudoku-app.dir/src/main.cpp.o.ddi: \
  /usr/include/opencv4/opencv2/video.hpp \
  /usr/include/opencv4/opencv2/video/tracking.hpp \
  /usr/include/opencv4/opencv2/video/background_segm.hpp \
+ /usr/include/c++/16/filesystem /usr/include/c++/16/bits/fs_fwd.h \
+ /usr/include/c++/16/bits/fs_path.h /usr/include/c++/16/codecvt \
+ /usr/include/c++/16/bits/fs_dir.h /usr/include/c++/16/bits/fs_ops.h \
+ /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/../include/SudokuPipeline.hpp \
  /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/../include/algorithms.hpp \
- /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/../include/DigitRecognizer.hpp
+ /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/../include/DigitRecognizer.hpp \
+ /home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/../include/SudokuSolver.hpp

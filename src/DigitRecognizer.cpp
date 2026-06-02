@@ -1,94 +1,191 @@
-#include <numeric>
+#include "../include/DigitRecognizer.hpp"
+#include <algorithm>
+#include <array>
+#include <filesystem>
+#include <functional>
 #include <limits>
 #include <stdexcept>
-#include "../include/DigitRecognizer.hpp"
 
+namespace fs = std::filesystem;
 
-cv::Mat DigitRecognizer::normalise(const cv::Mat& cell, int size) {
-    cv::Mat resized;
-    cv::resize(cell, resized, {size, size});
-    return resized;
-    
-}
+// Foreground = white strokes on a black background (the threshold/warp
+// stages produce 255 for ink). A pixel counts as ink above this value.
+static constexpr int FG_THRESH = 128;
 
+cv::Mat DigitRecognizer::normalise(const cv::Mat& cell) {
+    if (cell.empty()) return {};
 
-std::vector<float> DigitRecognizer::getHorizontalProjection(const cv::Mat& cell) {
-    cv::Mat norm = normalise(cell);
-    std::vector<float> proj(norm.rows, 0.f);
-
-    for (int r = 0; r < norm.rows; ++r)
-        for (int c = 0; c < norm.cols; ++c)
-            if (norm.at<uchar>(r, c) >= 128)
-                proj[r] += 1.f;
-
-    float maxVal = *std::max_element(proj.begin(), proj.end());
-    if (maxVal > 0)
-        for (float& v : proj) v /= maxVal;
-
-    return proj;
-}
-
-std::vector<float> DigitRecognizer::getVerticalProjection(const cv::Mat& cell) {
-    cv::Mat norm = normalise(cell);
-    std::vector<float> proj(norm.cols, 0.f);
-
-    for (int r = 0; r < norm.rows; ++r)
-        for (int c = 0; c < norm.cols; ++c)
-            if (norm.at<uchar>(r, c) >= 128)
-                proj[c] += 1.f;
-
-    float maxVal = *std::max_element(proj.begin(), proj.end());
-    if (maxVal > 0)
-        for (float& v : proj) v /= maxVal;
-
-    return proj;
-}
-
-
-float DigitRecognizer::calculateDistance(const DigitFeatures& f1, const DigitFeatures& f2) {
-    auto sse = [](const std::vector<float>& a, const std::vector<float>& b) {
-        float dist = 0.f;
-        for (int i = 0; i < (int)a.size(); ++i) {
-            float diff = a[i] - b[i];
-            dist += diff * diff;
+    // 1. Locate the foreground bounding box.
+    int minX = cell.cols, minY = cell.rows, maxX = -1, maxY = -1;
+    int fgCount = 0;
+    for (int y = 0; y < cell.rows; ++y) {
+        for (int x = 0; x < cell.cols; ++x) {
+            if (cell.at<uchar>(y, x) > FG_THRESH) {
+                ++fgCount;
+                minX = std::min(minX, x); maxX = std::max(maxX, x);
+                minY = std::min(minY, y); maxY = std::max(maxY, y);
+            }
         }
-        return dist;
-    };
+    }
+    // Too little ink -> treat the cell as empty.
+    if (fgCount < 8 || maxX < minX) return {};
 
-    return sse(f1.h_proj, f2.h_proj) + sse(f1.v_proj, f2.v_proj);
+    cv::Mat crop = cell(cv::Rect(minX, minY, maxX - minX + 1, maxY - minY + 1));
+
+    // 2. Aspect-preserving rescale into an (S - 2*MARGIN) box.
+    const int inner = S - 2 * MARGIN;
+    double sc = std::min(inner / (double)crop.rows, inner / (double)crop.cols);
+    int nw = std::max(1, (int)std::lround(crop.cols * sc));
+    int nh = std::max(1, (int)std::lround(crop.rows * sc));
+
+    cv::Mat resized;
+    cv::resize(crop, resized, cv::Size(nw, nh), 0, 0, cv::INTER_AREA);
+    // Re-binarise (INTER_AREA introduces grey values).
+    cv::Mat bin;
+    cv::threshold(resized, bin, 96, 255, cv::THRESH_BINARY);
+
+    // 3. Recentre on an S x S canvas using the centre of mass.
+    double sumX = 0, sumY = 0; int cnt = 0;
+    for (int y = 0; y < bin.rows; ++y)
+        for (int x = 0; x < bin.cols; ++x)
+            if (bin.at<uchar>(y, x) > FG_THRESH) { sumX += x; sumY += y; ++cnt; }
+    if (cnt == 0) return {};
+
+    double cx = sumX / cnt, cy = sumY / cnt;
+    int ox = (int)std::lround(S / 2.0 - cx);
+    int oy = (int)std::lround(S / 2.0 - cy);
+    ox = std::clamp(ox, 0, S - nw);
+    oy = std::clamp(oy, 0, S - nh);
+
+    cv::Mat canvas = cv::Mat::zeros(S, S, CV_8UC1);
+    bin.copyTo(canvas(cv::Rect(ox, oy, nw, nh)));
+    return canvas;
+}
+
+DigitFeatures DigitRecognizer::extractFeatures(const cv::Mat& norm) {
+    DigitFeatures f;
+    if (norm.empty()) return f;  // valid stays false
+
+    // Pixel-overlap map (0/1).
+    f.pixels.reserve(S * S);
+    for (int y = 0; y < S; ++y)
+        for (int x = 0; x < S; ++x)
+            f.pixels.push_back(norm.at<uchar>(y, x) > FG_THRESH ? 1.f : 0.f);
+
+    // Z x Z zoning densities.
+    const int zs = S / Z;
+    f.zoning.assign(Z * Z, 0.f);
+    for (int i = 0; i < Z; ++i) {
+        for (int j = 0; j < Z; ++j) {
+            int sum = 0;
+            for (int y = i * zs; y < (i + 1) * zs; ++y)
+                for (int x = j * zs; x < (j + 1) * zs; ++x)
+                    if (norm.at<uchar>(y, x) > FG_THRESH) ++sum;
+            f.zoning[i * Z + j] = (float)sum / (zs * zs);
+        }
+    }
+
+    // Row / column projection densities.
+    f.h_proj.assign(S, 0.f);
+    f.v_proj.assign(S, 0.f);
+    for (int y = 0; y < S; ++y) {
+        for (int x = 0; x < S; ++x) {
+            if (norm.at<uchar>(y, x) > FG_THRESH) {
+                f.h_proj[y] += 1.f;
+                f.v_proj[x] += 1.f;
+            }
+        }
+    }
+    for (float& v : f.h_proj) v /= S;
+    for (float& v : f.v_proj) v /= S;
+
+    f.valid = true;
+    return f;
+}
+
+float DigitRecognizer::calculateDistance(const DigitFeatures& a,
+                                         const DigitFeatures& b) {
+    auto meanSq = [](const std::vector<float>& u, const std::vector<float>& v) {
+        float d = 0.f;
+        for (size_t i = 0; i < u.size(); ++i) { float t = u[i] - v[i]; d += t * t; }
+        return u.empty() ? 0.f : d / u.size();
+    };
+    auto sumSq = [](const std::vector<float>& u, const std::vector<float>& v) {
+        float d = 0.f;
+        for (size_t i = 0; i < u.size(); ++i) { float t = u[i] - v[i]; d += t * t; }
+        return d;
+    };
+    // Weights tuned offline: shape overlap dominates, zoning disambiguates,
+    // projections add a small global-layout term.
+    return 3.0f * meanSq(a.pixels, b.pixels)
+         + 1.0f * sumSq(a.zoning, b.zoning)
+         + 0.3f * sumSq(a.h_proj, b.h_proj)
+         + 0.3f * sumSq(a.v_proj, b.v_proj);
+}
+
+void DigitRecognizer::addSample(int digit, const cv::Mat& image) {
+    DigitFeatures f = extractFeatures(normalise(image));
+    if (f.valid) references.emplace_back(digit, std::move(f));
+}
+
+// Load every "digit_<d>_...png" file in `dir` as labelled samples.
+// Returns the number loaded; missing directory is not an error.
+static int loadDir(const std::string& dir,
+                   const std::function<void(int, const cv::Mat&)>& add) {
+    if (!fs::exists(dir) || !fs::is_directory(dir)) return 0;
+    int loaded = 0;
+    for (const auto& e : fs::directory_iterator(dir)) {
+        std::string name = e.path().filename().string();
+        if (name.rfind("digit_", 0) != 0) continue;
+        int label = name[6] - '0';
+        if (label < 1 || label > 9) continue;
+        cv::Mat img = cv::imread(e.path().string(), cv::IMREAD_GRAYSCALE);
+        if (img.empty()) continue;
+        add(label, img);
+        ++loaded;
+    }
+    return loaded;
 }
 
 DigitRecognizer::DigitRecognizer() {
-    for (int digit = 1; digit <= 9; ++digit) {
-        std::string path = "templates/digit_" + std::to_string(digit) + ".png";
-        cv::Mat tmpl = cv::imread(path, cv::IMREAD_GRAYSCALE);
+    auto add = [this](int d, const cv::Mat& m) { addSample(d, m); };
 
-        if (tmpl.empty()) {
-            throw std::runtime_error("DigitRecognizer: missing template " + path);
-        }
+    // Primary reference set: real digits harvested from solved grids.
+    int harvested = loadDir("templates_knn", add);
+    // Optional legacy seed set (not required).
+    int legacy = loadDir("templates", add);
 
-        DigitFeatures features;
-        features.h_proj = getHorizontalProjection(tmpl);
-        features.v_proj = getVerticalProjection(tmpl);
-        referenceDictionary[digit] = features;
-    }
+    std::cout << "[DigitRecognizer] loaded " << harvested
+              << " harvested + " << legacy << " legacy samples ("
+              << references.size() << " total)\n";
+
+    if (references.empty())
+        throw std::runtime_error(
+            "DigitRecognizer: no reference samples found. Expected digit images "
+            "in templates_knn/ (run with --harvest on a solvable grid first).");
 }
 
-
 int DigitRecognizer::recognizeDigit(const cv::Mat& cell) {
-    DigitFeatures query;
-    query.h_proj = getHorizontalProjection(cell);
-    query.v_proj = getVerticalProjection(cell);
+    DigitFeatures query = extractFeatures(normalise(cell));
+    if (!query.valid) return 0;  // blank cell
 
-    float bestDist  = std::numeric_limits<float>::max();
-    int   bestDigit = 0;
+    // Distance to every reference sample.
+    std::vector<std::pair<float, int>> dists;  // (distance, digit)
+    dists.reserve(references.size());
+    for (const auto& [digit, feat] : references)
+        dists.emplace_back(calculateDistance(query, feat), digit);
 
-    for (const auto& [digit, tmplFeatures] : referenceDictionary) {
-        float dist = calculateDistance(query, tmplFeatures);
-        if (dist < bestDist) {
-            bestDist  = dist;
-            bestDigit = digit;
-        }
-    }
-    return bestDigit;
+    // Weighted vote over the K nearest neighbours (weight = 1 / (dist + eps)).
+    int k = std::min<int>(K, (int)dists.size());
+    std::partial_sort(dists.begin(), dists.begin() + k, dists.end());
+
+    std::array<float, 10> votes{};
+    for (int i = 0; i < k; ++i)
+        votes[dists[i].second] += 1.0f / (dists[i].first + 1e-6f);
+
+    int best = 0;
+    float bestVote = -1.f;
+    for (int d = 1; d <= 9; ++d)
+        if (votes[d] > bestVote) { bestVote = votes[d]; best = d; }
+    return best;
 }

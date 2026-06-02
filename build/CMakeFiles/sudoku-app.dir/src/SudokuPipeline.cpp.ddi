@@ -1,0 +1,11 @@
+{
+"rules": [
+{
+"primary-output": "CMakeFiles/sudoku-app.dir/src/SudokuPipeline.cpp.o",
+"requires": [
+]
+}
+],
+"version": 0,
+"revision": 0
+}

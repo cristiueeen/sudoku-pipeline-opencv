@@ -339,7 +339,7 @@ namespace algorithms{
                         if (nb.x < 0 || nb.y < 0 ||
                             nb.x >= binary.cols || nb.y >= binary.rows) continue;
                         if (visited.at<uchar>(nb.y, nb.x)) continue;
-                        if (binary.at<uchar>(nb.y, nb.x) == 0) continue;
+                        if (binary.at<uchar>(nb.y, nb.x) == 0) continue;  // skip background
                         visited.at<uchar>(nb.y, nb.x) = 1;
                         q.push(nb);
                     }
@@ -384,21 +384,9 @@ namespace algorithms{
             int rectW  = std::min(binary.cols - startX, b.boundingBox.width - 2 * pad);
             int rectH  = std::min(binary.rows - startY, b.boundingBox.height - 2 * pad);
 
-            if (rectW <= 0 || rectH <= 0) continue;
-
             cv::Rect padded(startX, startY, rectW, rectH);
-            cv::Mat cropped = binary(padded).clone();
 
-            // Center the digit in a square canvas for consistent recognition
-            int side = std::max(rectW, rectH);
-            int canvasPad = side / 5; // add 20% padding around
-            int canvasSize = side + 2 * canvasPad;
-            cv::Mat canvas = cv::Mat::zeros(canvasSize, canvasSize, CV_8UC1);
-            int ox = (canvasSize - rectW) / 2;
-            int oy = (canvasSize - rectH) / 2;
-            cropped.copyTo(canvas(cv::Rect(ox, oy, rectW, rectH)));
-
-            grid[row][col].cellImage = canvas;
+            grid[row][col].cellImage = binary(padded).clone(); // Update the existing cell
         }
 
         // Flatten back into a 1D vector
@@ -420,34 +408,20 @@ namespace algorithms{
         int largeCount = 0;
         int wideCount = 0;
         int thinCount = 0;
-        int gridLineCount = 0;
 
         for (const auto& b : allBlobs) {
             int cellArea = cellSize * cellSize;
             float aspect = (float)b.boundingBox.width / b.boundingBox.height;
 
-            if (b.area < cellArea * params.minAreaFraction) { noiseCount++; continue; }
-            if (b.area > cellArea * params.maxAreaFraction) { largeCount++; continue; }
-            if (aspect > params.maxAspectRatio) { wideCount++; continue; }
-            if (aspect < params.minAspectRatio) { thinCount++; continue; }
-
-            // Reject blobs whose center is too close to a grid line
-            float cx_in_cell = std::fmod(b.center.x, (float)cellSize);
-            float cy_in_cell = std::fmod(b.center.y, (float)cellSize);
-            float margin = cellSize * 0.08f;
-            if (cx_in_cell < margin || cx_in_cell > cellSize - margin ||
-                cy_in_cell < margin || cy_in_cell > cellSize - margin) {
-                gridLineCount++;
-                continue;
-            }
-
-            digitBlobs.push_back(b);
+            if (b.area < cellArea * params.minAreaFraction) noiseCount++;
+            else if (b.area > cellArea * params.maxAreaFraction) largeCount++;
+            else if (aspect > params.maxAspectRatio) wideCount++;
+            else if (aspect < params.minAspectRatio) thinCount++;
+            else digitBlobs.push_back(b);
         }
         
         std::cout << "[DEBUG] findBlobs found " << allBlobs.size() << " total blobs." << std::endl;
-        std::cout << "[DEBUG] Rejected noise: " << noiseCount << ", too large: " << largeCount 
-                  << ", too wide: " << wideCount << ", too thin: " << thinCount 
-                  << ", grid-line: " << gridLineCount << std::endl;
+        std::cout << "[DEBUG] Rejected noise: " << noiseCount << ", too large: " << largeCount << ", too wide: " << wideCount << ", too thin: " << thinCount << std::endl;
         std::cout << "[DEBUG] isDigitBlob kept " << digitBlobs.size() << " digit blobs." << std::endl;
         
         return assignToGrid(digitBlobs, warpedBinary, warpSize, params.cropPadding);

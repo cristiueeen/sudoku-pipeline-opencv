@@ -27,6 +27,16 @@
 			"language" : "CXX",
 			"source" : "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/DigitRecognizer.cpp"
 		},
+		"CMakeFiles/sudoku-app.dir/src/SudokuPipeline.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/SudokuPipeline.cpp"
+		},
+		"CMakeFiles/sudoku-app.dir/src/SudokuSolver.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/SudokuSolver.cpp"
+		},
 		"CMakeFiles/sudoku-app.dir/src/algorithms.cpp.o" : 
 		{
 			"language" : "CXX",

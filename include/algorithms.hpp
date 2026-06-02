@@ -17,11 +17,12 @@ namespace algorithms {
     };
 
    struct BlobFilterParams {
-        float minAreaFraction  = 0.03f;  
-        float maxAreaFraction  = 0.80f;  
-        float maxAspectRatio   = 1.5f;   
-        float minAspectRatio   = 0.2f;   
-        int   cropPadding      = 3;
+        float minAreaFraction  = 0.02f;  // a thresholded digit is ~5-7% of a cell
+        float maxAreaFraction  = 0.80f;
+        float maxAspectRatio   = 1.5f;
+        float minAspectRatio   = 0.2f;
+        int   cropPadding      = 0;   // blob bbox already hugs the digit; the
+                                      // recogniser re-crops, so no extra trim
     };
     cv::Mat gaussianBlur(const cv::Mat& src, int kernel_size = 5);
     cv::Mat adaptiveThreshold(const cv::Mat& src, int windowSize, int c);
