@@ -27796,8 +27796,6 @@ namespace std __attribute__ ((__visibility__ ("default")))
 # 4 "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/../include/SudokuSolver.hpp"
 class SudokuSolver {
 private:
-
-
     long long steps = 0;
     static constexpr long long MAX_STEPS = 2'000'000;
 
@@ -27805,8 +27803,6 @@ private:
     bool backtrack(int grid[9][9]);
 
 public:
-
-
     bool solve(int grid[9][9]);
 };
 # 2 "/home/cristiueeen/Documents/Facultate/IP/sudoku-project/src/SudokuSolver.cpp" 2

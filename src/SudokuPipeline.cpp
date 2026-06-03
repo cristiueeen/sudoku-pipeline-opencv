@@ -8,18 +8,15 @@ SudokuPipeline::SudokuPipeline() = default;
 
 bool SudokuPipeline::locateAndWarp(const cv::Mat& gray, cv::Mat& thresholded,
                                    cv::Mat& warpedClean, cv::Mat& M, cv::Mat& Minv) {
-    // 1. Pre-processing: blur -> adaptive threshold -> morphological close.
     cv::Mat blurred = algorithms::gaussianBlur(gray, 5);
     thresholded     = algorithms::adaptiveThreshold(blurred, 21, 15);
     cv::Mat morphed = algorithms::morphClose(thresholded, 5);
 
-    // 2. Largest blob = the grid; its extreme points are the 4 corners.
     std::vector<cv::Point> largestBlob = algorithms::findLargestBlob(morphed);
     if (largestBlob.empty()) return false;
 
     std::array<cv::Point2f, 4> corners = algorithms::getGridCorners(largestBlob);
 
-    // 3. Rectify to a WARP x WARP square (tl, tr, br, bl order).
     std::vector<cv::Point2f> dst = {
         {0, 0}, {(float)WARP, 0}, {(float)WARP, (float)WARP}, {0, (float)WARP}};
     std::vector<cv::Point2f> src = {corners[0], corners[1], corners[2], corners[3]};
@@ -41,7 +38,7 @@ cv::Mat SudokuPipeline::drawSolutionBack(const cv::Mat& inputColor,
 
     for (int r = 0; r < 9; ++r) {
         for (int c = 0; c < 9; ++c) {
-            if (recognised[r][c] != 0) continue;  // keep the printed givens
+            if (recognised[r][c] != 0) continue;  
             std::string text = std::to_string(solution[r][c]);
             int baseline = 0;
             double scale = 1.0;
@@ -55,7 +52,6 @@ cv::Mat SudokuPipeline::drawSolutionBack(const cv::Mat& inputColor,
         }
     }
 
-    // Warp the overlay back to the original geometry and composite it on top.
     cv::Mat overlayOrig;
     cv::warpPerspective(overlayWarp, overlayOrig, Minv, inputColor.size());
 
@@ -72,23 +68,19 @@ cv::Mat SudokuPipeline::drawSolutionBack(const cv::Mat& inputColor,
 PipelineResult SudokuPipeline::process(const cv::Mat& inputGray, const cv::Mat& inputColor) {
     PipelineResult res;
 
-    // Locate + rectify the grid.
     cv::Mat M, Minv;
     if (!locateAndWarp(inputGray, res.thresholded, res.warpedClean, M, Minv))
         return res;  // gridFound stays false
     res.gridFound = true;
     lastMinv = Minv;
 
-    // Extract and recognise the digits.
     res.cells = algorithms::extractDigits(res.warpedClean, WARP);
     for (const auto& d : res.cells)
         res.recognised[d.row][d.col] = recognizer.recognizeDigit(d.cellImage);
 
-    // Solve a copy of the recognised grid.
     std::memcpy(res.solution, res.recognised, sizeof(res.solution));
     res.solved = solver.solve(res.solution);
 
-    // Draw the solution back onto the original colour image.
     if (res.solved)
         res.output = drawSolutionBack(inputColor, Minv, res.recognised, res.solution);
 
@@ -97,7 +89,7 @@ PipelineResult SudokuPipeline::process(const cv::Mat& inputGray, const cv::Mat& 
 
 int SudokuPipeline::harvest(const PipelineResult& res,
                             const std::string& sourceName) {
-    if (!res.solved) return 0;  // only trust digits from a solved grid
+    if (!res.solved) return 0;  
 
     fs::create_directories("templates_knn");
     int saved = 0;
