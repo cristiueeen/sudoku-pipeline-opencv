@@ -70,7 +70,7 @@ PipelineResult SudokuPipeline::process(const cv::Mat& inputGray, const cv::Mat& 
 
     cv::Mat M, Minv;
     if (!locateAndWarp(inputGray, res.thresholded, res.warpedClean, M, Minv))
-        return res;  // gridFound stays false
+        return res;  
     res.gridFound = true;
     lastMinv = Minv;
 

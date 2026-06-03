@@ -1,3 +1,5 @@
 .claude
-.cache/*
-build/*
+.cache/
+build/
+presentation/*
+!presentation/Sudoku_Solver.pptx

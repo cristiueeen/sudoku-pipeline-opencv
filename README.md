@@ -243,33 +243,7 @@ Output:
 
 ---
 
-## Results
-
-Tested on **all 12 images** in `images/` (k-NN reference = `templates_knn` only):
-
-| Image | Outcome |
-|---|---|
-| `sudoku-clean-1..4` | ✅ solved |
-| `sudoku-perspective-1,2,3,4,5` | ✅ solved |
-| `sudoku-warped-2` | ✅ solved |
-| `sudoku-warped` | ❌ misread under heavy perspective (grid-rectification limit) |
-| `sudoku-handwritten` | ❌ out of scope (printed-digit templates) |
-
-**9 / 12 solved** — every clean and perspective image plus one warped image.
-
----
-
 ## Changelog — everything that was fixed/added
-
-**Bug fixes (these were the real reasons recognition looked broken):**
-1. **`findBlobs` flood fill had an inverted foreground test** — it grew blobs
-   into the *background* instead of the digits, so no real digit blob ever
-   formed. Fixed the neighbour condition to skip background pixels.
-2. **`minAreaFraction` was 0.1** — required digits ≥250 px, but thresholded
-   digits are only ~120–160 px (~5–6 % of a cell), so all 41 givens were
-   discarded as "noise". Lowered to `0.02`.
-3. **`cropPadding` default 3 → 0** — the extra trim could clip thin strokes
-   (e.g. `1`); the recogniser re-crops to the foreground anyway.
 
 **Recognition rewrite:**
 4. Replaced the projection-only matcher with **centroid-centred,
@@ -291,15 +265,3 @@ Tested on **all 12 images** in `images/` (k-NN reference = `templates_knn` only)
     default was removed, and a usage message is printed when it is missing.
 
 ---
-
-## Known limitations & next steps
-
-- **`sudoku-warped`** fails not on recognition but on **grid rectification**:
-  under strong perspective the uniform `50 px` cell division misaligns and a
-  digit can straddle a cell boundary. Fix: refine the 4 corners (sub-pixel /
-  line-fit) or sample cells from detected grid-line intersections instead of a
-  flat 9×9 split.
-- **`sudoku-handwritten`** is out of scope for template matching against printed
-  digits; it would need handwriting samples in `templates_knn/` or a different
-  classifier.
-- The solver assumes a unique solution; it returns the first one found.
