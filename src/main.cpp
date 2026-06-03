@@ -25,7 +25,6 @@ static void usage(const char* prog) {
 }
 
 int main(int argc, char** argv) {
-    // ---- parse arguments (dynamic image path, no hardcoded default) ----
     std::string imagePath;
     bool headless = false;
     bool harvest  = false;
@@ -44,7 +43,6 @@ int main(int argc, char** argv) {
         cv::waitKey(0);
     };
 
-    // ---- load image ----------------------------------------------------
     cv::Mat inputColor = cv::imread(imagePath, cv::IMREAD_COLOR);
     cv::Mat inputGray  = cv::imread(imagePath, cv::IMREAD_GRAYSCALE);
     if (inputGray.empty()) {
@@ -53,7 +51,6 @@ int main(int argc, char** argv) {
     }
     show("Initial Sudoku", inputGray);
 
-    // ---- run the pipeline ----------------------------------------------
     SudokuPipeline pipeline;
     PipelineResult res = pipeline.process(inputGray, inputColor);
 
@@ -75,7 +72,6 @@ int main(int argc, char** argv) {
     std::cout << "\nSolved grid:\n";
     printGrid(res.solution);
 
-    // ---- harvest mode --------------------------------------------------
     if (harvest) {
         std::string base = std::filesystem::path(imagePath).stem().string();
         int saved = pipeline.harvest(res, base);
@@ -83,7 +79,6 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    // ---- write + show the solved overlay -------------------------------
     cv::imwrite("result.png", res.output);
     std::cout << "\nWrote result.png\n";
     show("Solved Sudoku", res.output);

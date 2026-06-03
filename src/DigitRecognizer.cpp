@@ -8,14 +8,11 @@
 
 namespace fs = std::filesystem;
 
-// Foreground = white strokes on a black background (the threshold/warp
-// stages produce 255 for ink). A pixel counts as ink above this value.
 static constexpr int FG_THRESH = 128;
 
 cv::Mat DigitRecognizer::normalise(const cv::Mat& cell) {
     if (cell.empty()) return {};
 
-    // 1. Locate the foreground bounding box.
     int minX = cell.cols, minY = cell.rows, maxX = -1, maxY = -1;
     int fgCount = 0;
     for (int y = 0; y < cell.rows; ++y) {
@@ -27,12 +24,11 @@ cv::Mat DigitRecognizer::normalise(const cv::Mat& cell) {
             }
         }
     }
-    // Too little ink -> treat the cell as empty.
-    if (fgCount < 8 || maxX < minX) return {};
+    if (fgCount < 8 || maxX < minX) return {}; //there is too little ink
 
     cv::Mat crop = cell(cv::Rect(minX, minY, maxX - minX + 1, maxY - minY + 1));
 
-    // 2. Aspect-preserving rescale into an (S - 2*MARGIN) box.
+    
     const int inner = S - 2 * MARGIN;
     double sc = std::min(inner / (double)crop.rows, inner / (double)crop.cols);
     int nw = std::max(1, (int)std::lround(crop.cols * sc));
@@ -40,11 +36,9 @@ cv::Mat DigitRecognizer::normalise(const cv::Mat& cell) {
 
     cv::Mat resized;
     cv::resize(crop, resized, cv::Size(nw, nh), 0, 0, cv::INTER_AREA);
-    // Re-binarise (INTER_AREA introduces grey values).
     cv::Mat bin;
     cv::threshold(resized, bin, 96, 255, cv::THRESH_BINARY);
 
-    // 3. Recentre on an S x S canvas using the centre of mass.
     double sumX = 0, sumY = 0; int cnt = 0;
     for (int y = 0; y < bin.rows; ++y)
         for (int x = 0; x < bin.cols; ++x)
@@ -64,15 +58,15 @@ cv::Mat DigitRecognizer::normalise(const cv::Mat& cell) {
 
 DigitFeatures DigitRecognizer::extractFeatures(const cv::Mat& norm) {
     DigitFeatures f;
-    if (norm.empty()) return f;  // valid stays false
+    if (norm.empty()) return f;  
 
-    // Pixel-overlap map (0/1).
+    // comparatie pixel cu pixel 
     f.pixels.reserve(S * S);
     for (int y = 0; y < S; ++y)
         for (int x = 0; x < S; ++x)
             f.pixels.push_back(norm.at<uchar>(y, x) > FG_THRESH ? 1.f : 0.f);
 
-    // Z x Z zoning densities.
+    //denistate pe zone (pentru 1 si 7 sau 3 si 8)
     const int zs = S / Z;
     f.zoning.assign(Z * Z, 0.f);
     for (int i = 0; i < Z; ++i) {
@@ -85,7 +79,7 @@ DigitFeatures DigitRecognizer::extractFeatures(const cv::Mat& norm) {
         }
     }
 
-    // Row / column projection densities.
+    // proiectii
     f.h_proj.assign(S, 0.f);
     f.v_proj.assign(S, 0.f);
     for (int y = 0; y < S; ++y) {
@@ -115,9 +109,7 @@ float DigitRecognizer::calculateDistance(const DigitFeatures& a,
         for (size_t i = 0; i < u.size(); ++i) { float t = u[i] - v[i]; d += t * t; }
         return d;
     };
-    // Weights tuned offline: shape overlap dominates, zoning disambiguates,
-    // projections add a small global-layout term.
-    return 3.0f * meanSq(a.pixels, b.pixels)
+    return 3.0f * meanSq(a.pixels, b.pixels) // cea mai imp e comp pixel cu pixel
          + 1.0f * sumSq(a.zoning, b.zoning)
          + 0.3f * sumSq(a.h_proj, b.h_proj)
          + 0.3f * sumSq(a.v_proj, b.v_proj);
@@ -128,8 +120,6 @@ void DigitRecognizer::addSample(int digit, const cv::Mat& image) {
     if (f.valid) references.emplace_back(digit, std::move(f));
 }
 
-// Load every "digit_<d>_...png" file in `dir` as labelled samples.
-// Returns the number loaded; missing directory is not an error.
 static int loadDir(const std::string& dir,
                    const std::function<void(int, const cv::Mat&)>& add) {
     if (!fs::exists(dir) || !fs::is_directory(dir)) return 0;
@@ -150,9 +140,7 @@ static int loadDir(const std::string& dir,
 DigitRecognizer::DigitRecognizer() {
     auto add = [this](int d, const cv::Mat& m) { addSample(d, m); };
 
-    // Primary reference set: real digits harvested from solved grids.
     int harvested = loadDir("templates_knn", add);
-    // Optional legacy seed set (not required).
     int legacy = loadDir("templates", add);
 
     std::cout << "[DigitRecognizer] loaded " << harvested
@@ -167,7 +155,7 @@ DigitRecognizer::DigitRecognizer() {
 
 int DigitRecognizer::recognizeDigit(const cv::Mat& cell) {
     DigitFeatures query = extractFeatures(normalise(cell));
-    if (!query.valid) return 0;  // blank cell
+    if (!query.valid) return 0; 
 
     // Distance to every reference sample.
     std::vector<std::pair<float, int>> dists;  // (distance, digit)
